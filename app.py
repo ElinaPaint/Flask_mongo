@@ -1,9 +1,24 @@
 from flask import Flask, jsonify, request
 from datos_dummy import books
+import pymongo
 import json
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
+
+# with open('books.json', 'w') as file:
+#     json.dump(books, file)
+
+# with open('books.json','r') as r:
+#     data = json.load(r)
+
+url = 'mongodb+srv://newtwo:mypassword@cluster0.oornbrg.mongodb.net/?retryWrites=true&w=majority'
+myclient = pymongo.MongoClient(url)
+
+mydb = myclient["Cluster0"]
+books = mydb['books']
+# books.insert_many(data)
+
 
 
 @app.route('/', methods=['GET'])
@@ -11,107 +26,162 @@ def home():
     return "<h1>Distant Reading Archive</h1><p>This site is a prototype API for distant reading of science fiction novels.</p>"
 
 
+
 # 1.Ruta para obtener todos los libros
 @app.route('/api/v0/resources/books/all', methods=['GET'])
 def get_all():
-    return jsonify(books)
+    filter = {}
+    projection = {'_id':0}
+    all = list(books.find(filter=filter, projection=projection))
+    return all
 
-# 2.Ruta para obtener un libro concreto mediante su id como parámetro en la llamada
+
+
+# pedir libro por id 
 @app.route('/api/v0/resources/book', methods=['GET'])
-def book_id():
-    results = []
+def book_id(): 
     if 'id' in request.args:
         id = int(request.args['id'])
-        for book in books:
-            if book['id']==id:
-                results.append(book)
-        if results == []:
+        filter = {"id": id}
+        projection = {'_id': 0}
+        all = list(books.find(filter=filter, projection=projection))
+        if all == []:
             return "Book not found with the id requested"    
         else:
-            return jsonify(results)
+            return all
+
     else:
-        return "No id field provided"
-    
+        return "No range provided"
 
-# @app.route('/api/v0/resources/rangebooks', methods=['GET'])
-# def book_id():
-#     results = []
-#     if ('start' in request.args) & ('end' in request.args):
-#         start = int(request.args['start'])
-#         end = int(request.args['end'])
-#         rango = list(range(start, end+1))
 
-#         for book in books:
-#             if book['id'] in rango:
-#                 results.append(book)
-#         if results == []:
+
+# pedir libro por id 
+# @app.route('/api/v0/resources/book', methods=['GET'])
+# def book_id(): 
+#     if 'id' in request.args:
+#         id = int(request.args['id'])
+#         filter = {"id": id}
+#         projection = {'_id': 0}
+#         all = list(books.find(filter=filter, projection=projection))
+#         if all == []:
 #             return "Book not found with the id requested"    
 #         else:
-#             return jsonify(results)
-#     else:
-#         return "No id field provided"
+#             return all
 
-@app.route('/api/v0/resources/rangebooks', methods=['GET'])
-def book_id_range():
+#     else:
+#         return "No range provided"
+
+
+
+# pedir librocon titulo
+@app.route('/api/v0/resources/booktitle/<string:title>', methods=['GET'])
+def book_title(title):
+    if 'title' in request.args:
+        title = str(request.args['title'])
+        filter = {"title": title}
+        projection = {'_id': 0}
+        all = list(books.find(filter=filter, projection=projection))
+        if all == []:
+            return "Book not found with the title requested"    
+        else:
+            return all
+    else:
+        return "No title provided"
+
+
+
+
+
+@app.route('/api/v1/resources/booktitle', methods=['GET'])
+def book_title_nv1():
+
+    title = request.get_json()['title'] # coge datos del body
+    filter = {"title": title}
+    projection = {'_id': 0}
+    all = list(books.find(filter=filter, projection=projection))
+    if all == []:
+        return "Book not found with the title requested"    
+    else:
+        return all
+
+
+
+
+@app.route('/api/v1/resources/book/add', methods=['POST'])
+def book_title_body_2():
     results = []
-    if ('start' in request.args) & ('end' in request.args):
+    libro = request.get_json()
+    books.insert_one(libro)
+    filters = {}
+    projections = {"_id":0}
+    results = list(books.find(filter=filters, projection=projections))
+
+    if results != []:
+        return jsonify(results)
+    else:
+        return "Book title not found" 
+
+
+
+
+
+
+
+
+# pedir libros por rango
+@app.route('/api/v0/resources/bookrange', methods=['GET'])
+def book_range():
     
-    
-        start = int(request.args['start'])
-        end = int(request.args['end'])
-        
-        rango = list(range(start, end+1))
-        
-        for book in books:
-            if book['id'] in rango:
-                results.append(book)
-        if results == []:
+    if ('id' in request.args) & ('id' in request.args):
+        start = int(request.args['id'])
+        end = int(request.args['id'])
+        filter = {"id": {'$gte': start, '$lte': end}}
+        projection = {'_id': 0}
+        all = list(books.find(filter=filter, projection=projection))
+        if all == []:
             return "Book not found with the id requested"    
         else:
-            return jsonify(results)
+            return all
+
     else:
         return "No range provided"
     
 
-
-
-
-# 3.Ruta para obtener un libro concreto mediante su título como parámetro en la llamada de otra forma
-# @app.route('/api/v0/resources/book/<string:title>', methods=['GET'])
-@app.route('/api/v0/resources/booktitle/<string:title>/', methods=['GET'])
-def book_title(title):
-    results = []
+# delete libros - funciona en postman
+@app.route('/api/v1/resources/book/delete', methods=['DELETE'])
+def delete_book():
+    
+    if 'title' in request.args:
+        titulo = str(request.args['title'])
         
-    for book in books:
-        if book['title'] == title:
-            results.append(book)
-    if results == []:
-        return "Book not found with the id requested"    
+        filter = {"title": titulo}
+        projection = {'_id': 0}
+        delete_result = books.delete_one(filter=filter)
+        if delete_result.deleted_count == 0:
+            return "Book not found with the title requested"
+        else:
+            return "Successfully deleted"
+
     else:
-        return jsonify(results)
+        return "No range provided"
 
 
-# 4.Ruta para obtener un libro concreto mediante su título dentro del cuerpo de la llamada
-# @app.route('/api/v1/resources/bookbody', methods=['GET'])
+# update published year
+# @app.route('/api/v1/resources/book_published_year_update', methods=['UPDATE'])
+# def update_year_book():
+    
+#     if ('id' in request.args) and ('published' in request.args):
+#         id = str(request.args['id'])
+#         published = str(request.args["published"])
+#         filter = ({"id": id}, {'$set': {'published': published}}})
+#         projection = {'_id': 0}
+#         update_result = books.delete_one(filter=filter)
+#         if update_result.matchedCount == 0:
+#             return "Book not found with the title requested"
+#         else:
+#             return "Successfully deleted"
 
-# def book_body():
-#     data = request 
-
-
-# 5.Ruta para añadir un libro mediante parámetros en la llamada
-# @app.route('/api/v1/resources/book/add', methods=['POST'])
-
-
-# 6.Ruta para añadir un libro de otra forma 1
-# @app.route('/api/v1/resources/book/add_parameters', methods=['POST'])
-
-
-# 7.Ruta para modificar un libro
-# @app.route('/api/v1/resources/book/update', methods=['PUT'])
-
-
-# 8.Ruta para eliminar un libro
-# @app.route('/api/v1/resources/book/delete', methods=['DELETE'])
-
-
+#     else:
+#         return "No range provided"
+    
 app.run()
