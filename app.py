@@ -9,15 +9,15 @@ app.config["DEBUG"] = True
 # with open('books.json', 'w') as file:
 #     json.dump(books, file)
 
-# with open('books.json','r') as r:
-#     data = json.load(r)
+with open('books.json','r') as r:
+    data = json.load(r)
 
-url = 'mongodb+srv://newtwo:mypassword@cluster0.oornbrg.mongodb.net/?retryWrites=true&w=majority'
+url = 'mongodb+srv://user:newpassword@cluster0.zwsgeaa.mongodb.net/?retryWrites=true&w=majority'
 myclient = pymongo.MongoClient(url)
 
 mydb = myclient["Cluster0"]
-books = mydb['books']
-# books.insert_many(data)
+books = mydb['data']
+books.insert_many(data)
 
 
 
@@ -51,7 +51,7 @@ def book_id():
             return all
 
     else:
-        return "No range provided"
+        return "No id provided"
 
 
 
@@ -184,4 +184,5 @@ def delete_book():
 #     else:
 #         return "No range provided"
     
-app.run()
+if __name__ == "__main__":
+	app.run()
