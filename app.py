@@ -1,39 +1,68 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from datos_dummy import books
 import pymongo
 import json
 
-app = Flask(__name__)
-app.config["DEBUG"] = True
-
-# with open('books.json', 'w') as file:
-#     json.dump(books, file)
-
 with open('books.json','r') as r:
     data = json.load(r)
 
-url = 'mongodb+srv://user:newpassword@cluster0.zwsgeaa.mongodb.net/?retryWrites=true&w=majority'
-myclient = pymongo.MongoClient(url)
 
+#mongo credencial
+url = 'mongodb+srv://user:newpassword@cluster0.0spamm9.mongodb.net/?retryWrites=true&w=majority'
+myclient = pymongo.MongoClient(url, 27017)
 mydb = myclient["Cluster0"]
-books = mydb['data']
-books.insert_many(data)
+books = mydb['books']
+# Debo empezarla afuera 
+# ...
+
+app = Flask(__name__)
+app.config["DEBUG"] = True
 
 
+#pages
+@app.route('/')
+def index():
+    return render_template('Index.html')
 
-@app.route('/', methods=['GET'])
-def home():
-    return "<h1>Distant Reading Archive</h1><p>This site is a prototype API for distant reading of science fiction novels.</p>"
+# all books
+@app.route('/books/all', methods=['GET'])
+def all():
 
-
-
-# 1.Ruta para obtener todos los libros
-@app.route('/api/v0/resources/books/all', methods=['GET'])
-def get_all():
     filter = {}
     projection = {'_id':0}
     all = list(books.find(filter=filter, projection=projection))
-    return all
+    lista = []
+    for i in all:
+        title = i.get("title", "none")
+        lista.append(title)
+    return render_template("all.html", all=lista)
+
+# 1.Ruta para obtener todos los libros
+@app.route('/books/id', methods=['GET', 'POST'])
+def createid():
+    if request.method == 'POST':
+        id = int(request.form['id'])
+        
+        
+        filter = {'id': id}
+        projection = {'_id': 0}
+        all_books = list(books.find(filter=filter, projection=projection))
+        # all_books = jsonify(all_books)
+        lista = []
+
+        
+        if not all_books:
+            return render_template("index.html", todos="No books found for this ID")
+        
+        for i in all_books:
+
+            title = i.get("title", "none")
+            lista.append(title)
+
+        return render_template("createid.html", all=lista)
+
+      
+    return render_template("createid.html", todos="N/A")
 
 
 
@@ -53,7 +82,9 @@ def book_id():
     else:
         return "No id provided"
 
-
+@app.route('/about/')
+def about():
+    return render_template('about.html')
 
 # pedir libro por id 
 # @app.route('/api/v0/resources/book', methods=['GET'])
@@ -106,24 +137,20 @@ def book_title_nv1():
 
 
 
+# by body
+# @app.route('/api/v1/resources/book/add', methods=['POST'])
+# def book_title_body_2():
+#     results = []
+#     libro = request.get_json()
+#     books.insert_one(libro)
+#     filters = {}
+#     projections = {"_id":0}
+#     results = list(books.find(filter=filters, projection=projections))
 
-@app.route('/api/v1/resources/book/add', methods=['POST'])
-def book_title_body_2():
-    results = []
-    libro = request.get_json()
-    books.insert_one(libro)
-    filters = {}
-    projections = {"_id":0}
-    results = list(books.find(filter=filters, projection=projections))
-
-    if results != []:
-        return jsonify(results)
-    else:
-        return "Book title not found" 
-
-
-
-
+#     if results != []:
+#         return jsonify(results)
+#     else:
+#         return "Book title not found" 
 
 
 
@@ -185,4 +212,4 @@ def delete_book():
 #         return "No range provided"
     
 if __name__ == "__main__":
-	app.run()
+	app.run(debug=True, port=8080)

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <h1>{% block title %} Find your book by id {% endblock %}</h1>
+    <form method="post">
+        <hr>
+        <div class="content">
+        <form method="post">
+            <p>
+                <b><label for="id">Todo content</label></b>
+            </p>
+            <p>
+                <input type="text" name="id"
+                    placeholder="Type the id"></input>
+            </p>
+    
+            
+            <button type="submit">Find</button>
+            <br>
+        </form>
+        <br>
+        <h3>List of Books</h3>
+        <br>
+        <ul>
+            {% for i in all %}
+                <li>{{ i }}</li>
+            {% endfor %}
+        </ul>
+
+{% endblock %}
