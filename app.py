@@ -22,7 +22,7 @@ app.config["DEBUG"] = True
 #pages
 @app.route('/')
 def index():
-    return render_template('Index.html')
+    return render_template('index.html')
 
 # all books
 @app.route('/books/all', methods=['GET'])
